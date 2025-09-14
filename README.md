@@ -37,6 +37,8 @@ pinemcp setup
 - **Redis** - In-memory data store
 - **MongoDB** - Document database
 - **Cassandra** - Wide-column NoSQL database
+- **Microsoft SQL Server** - Enterprise SQL database
+- **Amazon DynamoDB** - Managed NoSQL database
 
 ### Tools you get
 - **Schema stuff** - Compare, migrate, and validate schemas
@@ -264,7 +266,7 @@ npm run lint        # Lint code
 ## Requirements
 
 - **Node.js 18+** - [Download](https://nodejs.org/)
-- **One or more database servers** (PostgreSQL, MySQL, SQLite, Redis, MongoDB, Cassandra)
+- **One or more database servers** (PostgreSQL, MySQL, SQLite, Redis, MongoDB, Cassandra, Microsoft SQL Server, Amazon DynamoDB)
 - **MCP-compatible client** (Cursor, Claude Desktop, or other MCP clients)
 
 ## Contributing

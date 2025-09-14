@@ -5,7 +5,7 @@ Here's how to install PineMCP on your system.
 ## What you need
 
 - **Node.js 18+** - [Download](https://nodejs.org/)
-- **One or more database servers** (PostgreSQL, MySQL, SQLite, Redis, MongoDB, Cassandra)
+- **One or more database servers** (PostgreSQL, MySQL, SQLite, Redis, MongoDB, Cassandra, Microsoft SQL Server, Amazon DynamoDB)
 - **MCP-compatible client** (Cursor, Claude Desktop, or other MCP clients)
 
 ## Quick Installation

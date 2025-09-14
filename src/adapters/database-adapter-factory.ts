@@ -6,6 +6,8 @@ import { SQLiteAdapter } from './sqlite-adapter.js';
 import { RedisAdapter } from './redis-adapter.js';
 import { MongoDBAdapter } from './mongodb-adapter.js';
 import { CassandraAdapter } from './cassandra-adapter.js';
+import { MSSQLAdapter } from './mssql-adapter.js';
+import { DynamoDBAdapter } from './dynamodb-adapter.js';
 
 export class DatabaseAdapterFactory {
   static createDatabase(config: DatabaseConfig): BaseDatabaseAdapter {
@@ -22,13 +24,17 @@ export class DatabaseAdapterFactory {
         return new MongoDBAdapter(config);
       case 'cassandra':
         return new CassandraAdapter(config);
+      case 'mssql':
+        return new MSSQLAdapter(config);
+      case 'dynamodb':
+        return new DynamoDBAdapter(config);
       default:
         throw new Error(`Unsupported database type: ${config.type}`);
     }
   }
 
   static getSupportedTypes(): DatabaseType[] {
-    return ['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra'];
+    return ['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra', 'mssql', 'dynamodb'];
   }
 
   static validateConfig(config: DatabaseConfig): { valid: boolean; errors: string[] } {
@@ -78,6 +84,19 @@ export class DatabaseAdapterFactory {
           errors.push('Keyspace or database name is required for Cassandra');
         }
         break;
+      case 'mssql':
+        if (!config.host && !config.url) {
+          errors.push('Host or URL is required for Microsoft SQL Server');
+        }
+        if (!config.database && !config.url) {
+          errors.push('Database name is required for Microsoft SQL Server');
+        }
+        break;
+      case 'dynamodb':
+        if (!config.region && !config.endpoint) {
+          errors.push('Region or endpoint is required for DynamoDB');
+        }
+        break;
     }
 
     return {
@@ -101,6 +120,10 @@ export class DatabaseAdapterFactory {
         return { type: 'mongodb' };
       case 'cassandra':
         return { type: 'cassandra' };
+      case 'mssql':
+        return { type: 'mssql' };
+      case 'dynamodb':
+        return { type: 'dynamodb', region: 'us-east-1' };
       default:
         throw new Error(`Unsupported database type: ${type}`);
     }

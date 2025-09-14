@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const DatabaseType = z.enum(['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra']);
+export const DatabaseType = z.enum(['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra', 'mssql', 'dynamodb']);
 export type DatabaseType = z.infer<typeof DatabaseType>;
 
 export const DatabaseConfig = z.object({
@@ -20,6 +20,14 @@ export const DatabaseConfig = z.object({
   // Cassandra specific
   keyspace: z.string().optional(),
   datacenter: z.string().optional(),
+  // MSSQL specific
+  instanceName: z.string().optional(),
+  trustServerCertificate: z.boolean().optional(),
+  // DynamoDB specific
+  region: z.string().optional(),
+  accessKeyId: z.string().optional(),
+  secretAccessKey: z.string().optional(),
+  endpoint: z.string().optional(), // For local DynamoDB
 });
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfig>;
