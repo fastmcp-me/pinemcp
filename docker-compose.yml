@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  pinemcp:
+    build: .
+    container_name: pinemcp
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    # Uncomment if you want to expose a web interface in the future
+    # ports:
+    #   - "3000:3000"
