@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { createRequire } from 'module';
 import chalk from 'chalk';
 import { Configuration } from './core/configuration.js';
 import { MCPServerService } from './services/mcp-server-service.js';
 import { DatabaseAdapterFactory } from './adapters/database-adapter-factory.js';
 
 const program = new Command();
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 program
   .name('pinemcp')
   .description('A professional MCP server supporting multiple database types')
-  .version('1.0.0');
+  .version(pkg.version);
 
 program
   .command('start')

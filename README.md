@@ -121,12 +121,12 @@ Check your client's docs for MCP server configuration.
 
 ## Documentation
 
-- **[Installation Guide](docs/installation.md)** - Detailed installation instructions
+- **[Installation Guide](docs/installation.md)** - Detailed installation instructions (Windows/WSL notes included)
 - **[Tools Reference](docs/tools-reference.md)** - Complete MCP tools documentation
 - **[MCP Client Integration](docs/mcp-integration.md)** - Setup guides for different MCP clients
 - **[Configuration Guide](docs/configuration.md)** - Database configuration
 - **[Examples](docs/examples.md)** - Practical use cases
-- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions (ENOTDIR/WSL/node-gyp)
 
 ## Usage Examples
 

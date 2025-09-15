@@ -117,6 +117,7 @@ pinemcp start
 - Needs PowerShell 5.1+ or PowerShell Core
 - Might need to run as Administrator for global installation
 - Use `winget install OpenJS.NodeJS` for Node.js installation
+- If you hit ENOTDIR/ENOTEMPTY during global install, see [Troubleshooting](troubleshooting.md#windows-global-install-errors-enotdirenotempty)
 
 ### Linux
 - Works on Ubuntu, Debian, CentOS, RHEL, and other distributions
@@ -131,6 +132,7 @@ pinemcp start
 ### WSL (Windows Subsystem for Linux)
 - Use the Linux installation method
 - Make sure Node.js is installed in WSL, not Windows
+- Installing in WSL does not install on Windows and vice versa; install separately if needed
 
 ## Troubleshooting
 
