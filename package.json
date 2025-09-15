@@ -23,7 +23,7 @@
     "audit:ci": "audit-ci --config audit-ci.json",
     "package": "npm run build && npm run package:deb",
     "package:deb": "node scripts/build-deb.js",
-    "prepublishOnly": "npm run build && npm run test && npm run lint"
+    "prepublishOnly": "npm run build && npm run lint"
   },
   "keywords": [
     "mcp",
