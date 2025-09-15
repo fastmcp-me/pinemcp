@@ -1,13 +1,14 @@
-import { ConnectionPool, config as mssqlConfig } from 'mssql';
-import { BaseDatabaseAdapter } from './base-database-adapter';
-import { QueryResult, TableInfo, DatabaseStats, FieldInfo } from '../types/database';
+import mssql from 'mssql';
+import type { config as MssqlConfig } from 'mssql';
+import { BaseDatabaseAdapter } from './base-database-adapter.js';
+import { QueryResult, TableInfo, DatabaseStats, FieldInfo } from '../types/database.js';
 
 export class MSSQLAdapter extends BaseDatabaseAdapter {
-  private pool: ConnectionPool | null = null;
+  private pool: mssql.ConnectionPool | null = null;
 
   async connect(): Promise<void> {
     const config = this.config;
-    const mssqlConfig: mssqlConfig = {
+    const mssqlConfigObj: MssqlConfig = {
       server: config.host || 'localhost',
       port: config.port || 1433,
       database: config.database || 'master',
@@ -22,7 +23,8 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
       requestTimeout: 30000,
     };
 
-    this.pool = new ConnectionPool(mssqlConfig);
+    const { ConnectionPool } = mssql;
+    this.pool = new ConnectionPool(mssqlConfigObj);
     await this.pool.connect();
   }
 

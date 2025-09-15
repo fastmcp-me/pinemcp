@@ -1,7 +1,7 @@
 import { DynamoDBClient, ListTablesCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand as DocScanCommand, QueryCommand as DocQueryCommand } from '@aws-sdk/lib-dynamodb';
-import { BaseDatabaseAdapter } from './base-database-adapter';
-import { QueryResult, TableInfo, DatabaseStats, FieldInfo } from '../types/database';
+import { BaseDatabaseAdapter } from './base-database-adapter.js';
+import { QueryResult, TableInfo, DatabaseStats, FieldInfo } from '../types/database.js';
 
 export class DynamoDBAdapter extends BaseDatabaseAdapter {
   private client: DynamoDBClient | null = null;
