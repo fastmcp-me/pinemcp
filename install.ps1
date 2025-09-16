@@ -34,18 +34,9 @@ Write-Host ""
 Write-Host "Installation completed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usage:" -ForegroundColor Cyan
-Write-Host "  pinemcp setup    # Configure database connections" -ForegroundColor White
-Write-Host "  pinemcp start    # Start the server" -ForegroundColor White
-Write-Host "  pinemcp --help   # Show all options" -ForegroundColor White
+Write-Host "  pinemcp start                 # Start the server (stdio)" -ForegroundColor White
+Write-Host "  pinemcp test-connection --name <name>  # Validate a connection" -ForegroundColor White
+Write-Host "  pinemcp --help                # Show all options" -ForegroundColor White
 Write-Host ""
-Write-Host "For MCP client integration:" -ForegroundColor Cyan
-Write-Host "1. Run: pinemcp setup to configure databases" -ForegroundColor White
-Write-Host "2. Add to your MCP client configuration:" -ForegroundColor White
-Write-Host ""
-Write-Host '"pinemcp": {' -ForegroundColor Yellow
-Write-Host '  "command": "pinemcp",' -ForegroundColor Yellow
-Write-Host '  "args": ["start"]' -ForegroundColor Yellow
-Write-Host '}' -ForegroundColor Yellow
-Write-Host ""
-Write-Host "Ready to use! Run 'pinemcp setup' to get started." -ForegroundColor Green
-Write-Host "See docs/mcp-integration.md for detailed client setup guides." -ForegroundColor Blue
+Write-Host "Configure connections via your MCP client configuration." -ForegroundColor Cyan
+Write-Host "See docs/mcp-integration.md for client setup guides." -ForegroundColor Blue

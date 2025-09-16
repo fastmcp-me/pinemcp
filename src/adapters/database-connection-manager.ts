@@ -12,7 +12,6 @@ export class DatabaseConnectionManager {
       await database.connect();
       this.connections.set(name, database);
       
-      // Set as current if it's the first connection
       if (!this.currentConnection) {
         this.currentConnection = name;
       }
@@ -27,7 +26,6 @@ export class DatabaseConnectionManager {
       await connection.disconnect();
       this.connections.delete(name);
       
-      // If this was the current connection, switch to another one
       if (this.currentConnection === name) {
         this.currentConnection = this.connections.keys().next().value || null;
       }
@@ -55,15 +53,15 @@ export class DatabaseConnectionManager {
 
   listConnections(): Array<{ name: string; type: DatabaseType; connected: boolean }> {
     const result: Array<{ name: string; type: DatabaseType; connected: boolean }> = [];
-    
+
     for (const [name, connection] of this.connections) {
       result.push({
         name,
-        type: connection.constructor.name.replace('Database', '').toLowerCase() as DatabaseType,
+        type: connection.getType() as DatabaseType,
         connected: connection.isConnected(),
       });
     }
-    
+
     return result;
   }
 

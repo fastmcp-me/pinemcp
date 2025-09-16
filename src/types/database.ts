@@ -12,22 +12,17 @@ export const DatabaseConfig = z.object({
   username: z.string().optional(),
   password: z.string().optional(),
   ssl: z.boolean().optional(),
-  filename: z.string().optional(), // For SQLite
-  // Redis specific
-  db: z.number().optional(), // Redis database number
-  // MongoDB specific
+  filename: z.string().optional(),
+  db: z.number().optional(),
   authSource: z.string().optional(),
-  // Cassandra specific
   keyspace: z.string().optional(),
   datacenter: z.string().optional(),
-  // MSSQL specific
   instanceName: z.string().optional(),
   trustServerCertificate: z.boolean().optional(),
-  // DynamoDB specific
   region: z.string().optional(),
   accessKeyId: z.string().optional(),
   secretAccessKey: z.string().optional(),
-  endpoint: z.string().optional(), // For local DynamoDB
+  endpoint: z.string().optional(),
 });
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfig>;

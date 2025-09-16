@@ -214,7 +214,7 @@ export class MCPServerService {
                   properties: {
                     type: {
                       type: 'string',
-                      enum: ['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra'],
+                      enum: ['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra', 'mssql', 'dynamodb'],
                     },
                     host: { type: 'string' },
                     port: { type: 'number' },
@@ -640,7 +640,16 @@ export class MCPServerService {
         throw new Error('Invalid resource URI');
       }
 
-      const [, schema, tableName] = uri.split('/');
+      const remainder = uri.slice('table://'.length);
+      const parts = remainder.split('/').filter(Boolean);
+      let schema: string | undefined = undefined;
+      let tableName: string | undefined = undefined;
+      if (parts.length === 1) {
+        tableName = parts[0];
+      } else if (parts.length >= 2) {
+        schema = parts[0];
+        tableName = parts.slice(1).join('/');
+      }
       if (!tableName) {
         throw new Error('Invalid table name in URI');
       }
@@ -1256,7 +1265,7 @@ export class MCPServerService {
 
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('MCP MultiDB Server started');
+    console.error('PineMCP started');
   }
 
   async stop(): Promise<void> {

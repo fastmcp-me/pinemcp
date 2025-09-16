@@ -12,83 +12,34 @@ export class Configuration {
   private static readonly CONFIG_PATH = join(__dirname, '../../config/mcp-config.json');
   private static readonly DEFAULT_CONFIG_PATH = join(__dirname, '../../config/mcp-config.default.json');
 
-  /**
-   * Load configuration from file or create default
-   */
   static load(): MCPConfig {
-    try {
-      if (existsSync(this.CONFIG_PATH)) {
-        const configData = readFileSync(this.CONFIG_PATH, 'utf-8');
-        const parsed = JSON.parse(configData);
-        return MCPConfig.parse(parsed);
-      } else if (existsSync(this.DEFAULT_CONFIG_PATH)) {
-        const configData = readFileSync(this.DEFAULT_CONFIG_PATH, 'utf-8');
-        const parsed = JSON.parse(configData);
-        return MCPConfig.parse(parsed);
-      } else {
-        return this.createDefault();
-      }
-    } catch (error) {
-      console.warn('Failed to load configuration, using defaults:', error);
-      return this.createDefault();
-    }
-  }
-
-  /**
-   * Save configuration to file
-   */
-  static save(config: MCPConfig): void {
-    try {
-      const configDir = dirname(this.CONFIG_PATH);
-      if (!existsSync(configDir)) {
-        mkdirSync(configDir, { recursive: true });
-      }
-      writeFileSync(this.CONFIG_PATH, JSON.stringify(config, null, 2));
-    } catch (error) {
-      throw new Error(`Failed to save configuration: ${error}`);
-    }
-  }
-
-  /**
-   * Create default configuration
-   */
-  static createDefault(): MCPConfig {
-    return {
-      databases: [
-        {
-          name: 'default',
-          type: 'sqlite',
-          filename: ':memory:',
-        }
-      ],
+    const empty: MCPConfig = {
+      databases: [],
       server: {
-        name: 'MCP MultiDB Server',
-        version: '1.0.0',
-        description: 'A professional MCP server supporting multiple database types',
-        port: 3000,
-        host: 'localhost',
+        name: '',
+        version: '',
+        description: '',
       },
       logging: {
         level: 'info',
         format: 'text',
       },
-    };
+    } as MCPConfig;
+    return this.mergeDiscoveredMCPJsonDatabases(empty);
   }
 
-  /**
-   * Validate database configuration
-   */
+  static save(_config: MCPConfig): void {
+    return;
+  }
+
+
   static validateDatabaseConfig(config: DatabaseConfig): { valid: boolean; errors: string[] } {
     return DatabaseAdapterFactory.validateConfig(config);
   }
 
-  /**
-   * Parse database URL into configuration
-   */
   static parseDatabaseUrl(url: string): DatabaseConfig | null {
     try {
       const parsedUrl = new URL(url);
-      
       switch (parsedUrl.protocol) {
         case 'postgresql:':
         case 'postgres:':
@@ -115,7 +66,7 @@ export class Configuration {
           return {
             type: 'sqlite',
             filename: parsedUrl.pathname,
-          };
+          } as unknown as DatabaseConfig;
         case 'redis:':
           return {
             type: 'redis',
@@ -123,7 +74,7 @@ export class Configuration {
             port: parsedUrl.port ? parseInt(parsedUrl.port) : 6379,
             db: parsedUrl.pathname.slice(1) ? parseInt(parsedUrl.pathname.slice(1)) : 0,
             password: parsedUrl.password,
-          };
+          } as unknown as DatabaseConfig;
         case 'mongodb:':
           return {
             type: 'mongodb',
@@ -133,7 +84,7 @@ export class Configuration {
             username: parsedUrl.username,
             password: parsedUrl.password,
             authSource: parsedUrl.searchParams.get('authSource') || undefined,
-          };
+          } as unknown as DatabaseConfig;
         case 'cassandra:':
           return {
             type: 'cassandra',
@@ -143,7 +94,22 @@ export class Configuration {
             username: parsedUrl.username,
             password: parsedUrl.password,
             datacenter: parsedUrl.searchParams.get('datacenter') || 'datacenter1',
-          };
+          } as unknown as DatabaseConfig;
+        case 'mssql:':
+          return {
+            type: 'mssql',
+            host: parsedUrl.hostname,
+            port: parsedUrl.port ? parseInt(parsedUrl.port) : 1433,
+            database: parsedUrl.pathname.slice(1),
+            username: parsedUrl.username,
+            password: parsedUrl.password,
+          } as unknown as DatabaseConfig;
+        case 'dynamodb:':
+          return {
+            type: 'dynamodb',
+            region: parsedUrl.searchParams.get('region') || undefined,
+            endpoint: parsedUrl.origin !== 'null' ? `${parsedUrl.protocol}//${parsedUrl.host}` : undefined,
+          } as unknown as DatabaseConfig;
         default:
           return null;
       }
@@ -152,352 +118,158 @@ export class Configuration {
     }
   }
 
-  /**
-   * Interactive setup wizard
-   */
-  static async setupInteractive(): Promise<MCPConfig> {
-    const readline = await import('readline');
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
 
-    const question = (query: string): Promise<string> => {
-      return new Promise((resolve) => {
-        rl.question(query, resolve);
-      });
-    };
-
-    try {
-        console.log('PineMCP Setup');
-      console.log('========================\n');
-
-      const databases: Array<{ name: string; type: 'postgresql' | 'mysql' | 'sqlite' | 'redis' | 'mongodb' | 'cassandra'; [key: string]: any }> = [];
-      let connectionCount = 1;
-
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        console.log(`\nDatabase Connection ${connectionCount}`);
-        console.log('=====================================');
-        
-        const connName = await question(`Connection name (e.g., main-db, redis-cache, mongo-docs): `);
-        if (!connName.trim()) break;
-
-        console.log('\nSupported database types:');
-        console.log('1. PostgreSQL');
-        console.log('2. MySQL');
-        console.log('3. SQLite');
-        console.log('4. Redis');
-        console.log('5. MongoDB');
-        console.log('6. Cassandra');
-        
-        const dbTypeChoice = await question('Select database type (1-6): ');
-        let dbType: 'postgresql' | 'mysql' | 'sqlite' | 'redis' | 'mongodb' | 'cassandra';
-        
-        switch (dbTypeChoice) {
-          case '1': dbType = 'postgresql'; break;
-          case '2': dbType = 'mysql'; break;
-          case '3': dbType = 'sqlite'; break;
-          case '4': dbType = 'redis'; break;
-          case '5': dbType = 'mongodb'; break;
-          case '6': dbType = 'cassandra'; break;
-          default:
-            console.log('Invalid choice, skipping this connection');
-            continue;
-        }
-
-        const databaseConfig: { name: string; type: 'postgresql' | 'mysql' | 'sqlite' | 'redis' | 'mongodb' | 'cassandra'; [key: string]: any } = {
-          name: connName,
-          type: dbType,
-        };
-
-        if (dbType === 'sqlite') {
-          const filename = await question('SQLite database file path (or :memory: for in-memory): ');
-          databaseConfig.filename = filename || ':memory:';
-        } else {
-          const host = await question(`Database host (default: localhost): `);
-          const port = await question(`Database port (default: ${this.getDefaultPort(dbType)}): `);
-          const database = await question(`Database name${dbType === 'cassandra' ? '/keyspace' : ''}: `);
-          
-          let username: string;
-          let password: string;
-          
-          if (dbType === 'redis') {
-            username = await question('Username (optional, press Enter to skip): ');
-            password = await question('Password (optional, press Enter to skip): ');
-          } else {
-            username = await question('Username: ');
-            password = await question('Password: ');
-            
-            if (!username.trim()) {
-              console.log('Username is required for this database type, skipping this connection');
+  private static mergeDiscoveredMCPJsonDatabases(config: MCPConfig): MCPConfig {
+    const discovered: Array<{ name: string; cfg: DatabaseConfig }> = [];
+    const mcpPaths = this.getPotentialMCPConfigPaths();
+    for (const path of mcpPaths) {
+      try {
+        if (!existsSync(path)) continue;
+        const raw = readFileSync(path, 'utf-8');
+        const json = JSON.parse(raw);
+        if (!json || !json.mcpServers) continue;
+        const servers = json.mcpServers as Record<string, any>;
+        for (const [_name, server] of Object.entries(servers)) {
+          if (!server) continue;
+          const arrays = [server.connections, server.databases, server.dbUrls, server.databaseUrls, server.database_urls, server.db_urls];
+          for (const arr of arrays) {
+            if (!arr) continue;
+            if (Array.isArray(arr)) {
+              arr.forEach((entry: any, index: number) => {
+                if (typeof entry === 'string') {
+                  const parsed = this.parseDatabaseUrl(entry);
+                  if (parsed) {
+                    const name = this.deriveConnectionNameFromUrl(entry, parsed, `mcp-db-${index + 1}`);
+                    discovered.push({ name, cfg: { name, ...parsed } as unknown as DatabaseConfig });
+                  }
+                } else if (entry && typeof entry === 'object') {
+                  if (entry.url && typeof entry.url === 'string') {
+                    const parsed = this.parseDatabaseUrl(entry.url);
+                    if (parsed) {
+                      const name = (entry.name && String(entry.name)) || this.deriveConnectionNameFromUrl(entry.url, parsed, `mcp-db-${index + 1}`);
+                      discovered.push({ name, cfg: { name, ...parsed } as unknown as DatabaseConfig });
+                    }
+                  } else if (entry.type) {
+                    const name = (entry.name && String(entry.name)) || `mcp-db-${index + 1}`;
+                    const cfg = { ...entry, name } as DatabaseConfig;
+                    discovered.push({ name, cfg });
+                  }
+                }
+              });
               continue;
             }
+            if (!Array.isArray(arr) && typeof arr === 'object') {
+              const entries = Object.entries(arr as Record<string, any>);
+              entries.forEach(([key, value], index) => {
+                if (typeof value === 'string') {
+                  const parsed = this.parseDatabaseUrl(value);
+                  if (parsed) {
+                    const name = this.normalizeName(key) || this.deriveConnectionNameFromUrl(value, parsed, `mcp-db-${index + 1}`);
+                    discovered.push({ name, cfg: { name, ...parsed } as unknown as DatabaseConfig });
+                  }
+                } else if (value && typeof value === 'object') {
+                  if (value.url && typeof value.url === 'string') {
+                    const parsed = this.parseDatabaseUrl(value.url);
+                    if (parsed) {
+                      const name = (value.name && String(value.name)) || this.normalizeName(key) || this.deriveConnectionNameFromUrl(value.url, parsed, `mcp-db-${index + 1}`);
+                      discovered.push({ name, cfg: { name, ...parsed } as unknown as DatabaseConfig });
+                    }
+                  } else if (value.type) {
+                    const name = (value.name && String(value.name)) || this.normalizeName(key) || `mcp-db-${index + 1}`;
+                    const cfg = { ...value, name } as DatabaseConfig;
+                    discovered.push({ name, cfg });
+                  }
+                }
+              });
+              continue;
+            }
+            const list: any[] = Array.isArray(arr)
+              ? arr
+              : (typeof arr === 'string' ? (arr as string).split(',').map(s => s.trim()).filter(Boolean) : []);
+            list.forEach((entry: any, index: number) => {
+              if (typeof entry === 'string') {
+                const parsed = this.parseDatabaseUrl(entry);
+                if (parsed) {
+                  const name = this.deriveConnectionNameFromUrl(entry, parsed, `mcp-db-${index + 1}`);
+                  discovered.push({ name, cfg: { name, ...parsed } as unknown as DatabaseConfig });
+                }
+              } else if (entry && typeof entry === 'object') {
+                if (entry.url && typeof entry.url === 'string') {
+                  const parsed = this.parseDatabaseUrl(entry.url);
+                  if (parsed) {
+                    const name = (entry.name && String(entry.name)) || this.deriveConnectionNameFromUrl(entry.url, parsed, `mcp-db-${index + 1}`);
+                    discovered.push({ name, cfg: { name, ...parsed } as unknown as DatabaseConfig });
+                  }
+                } else if (entry.type) {
+                  const name = (entry.name && String(entry.name)) || `mcp-db-${index + 1}`;
+                  const cfg = { ...entry, name } as DatabaseConfig;
+                  discovered.push({ name, cfg });
+                }
+              }
+            });
           }
-          
-          const ssl = await question('Use SSL? (y/N): ');
-
-          databaseConfig.host = host || 'localhost';
-          databaseConfig.port = port ? parseInt(port) : this.getDefaultPort(dbType);
-          databaseConfig.database = database || '';
-          databaseConfig.username = username.trim() || undefined;
-          databaseConfig.password = password.trim() || undefined;
-          databaseConfig.ssl = ssl.toLowerCase() === 'y' || ssl.toLowerCase() === 'yes';
-
-          if (dbType === 'redis') {
-            const db = await question('Redis database number (default: 0): ');
-            databaseConfig.db = db ? parseInt(db) : 0;
-          } else if (dbType === 'mongodb') {
-            const authSource = await question('MongoDB auth source (optional): ');
-            if (authSource) databaseConfig.authSource = authSource;
-          } else if (dbType === 'cassandra') {
-            const datacenter = await question('Cassandra datacenter (default: datacenter1): ');
-            databaseConfig.datacenter = datacenter || 'datacenter1';
-          }
         }
-
-        databases.push(databaseConfig);
-        connectionCount++;
-
-        const addAnother = await question('\nAdd another database connection? (y/N): ');
-        if (addAnother.toLowerCase() !== 'y' && addAnother.toLowerCase() !== 'yes') {
-          break;
-        }
+      } catch {
       }
-
-      const logLevel = await question('\nLog level (error/warn/info/debug, default: info): ');
-
-      const config: MCPConfig = {
-        databases: databases,
-        server: {
-          name: 'PineMCP',
-          version: '1.0.0',
-          description: 'A professional MCP server supporting multiple database types',
-          port: 3000, // Not used for MCP, but kept for compatibility
-          host: 'localhost', // Not used for MCP, but kept for compatibility
-        },
-        logging: {
-          level: (logLevel as any) || 'info',
-          format: 'text',
-        },
-      };
-
-      for (const db of databases) {
-        const validation = this.validateDatabaseConfig(db);
-        if (!validation.valid) {
-          console.error(`Configuration validation failed for ${db.name}:`);
-          validation.errors.forEach(error => console.error(`  - ${error}`));
-          throw new Error(`Invalid configuration for ${db.name}`);
-        }
-      }
-
-      console.log('\nConfiguration saved successfully!');
-      console.log(`Configured ${databases.length} database connection(s):`);
-      databases.forEach(db => console.log(`  - ${db.name} (${db.type})`));
-      
-      return config;
-
-    } finally {
-      rl.close();
     }
+    if (discovered.length === 0) return config;
+    const existingNames = new Set(config.databases.map(d => d.name));
+    const merged = [
+      ...config.databases,
+      ...discovered
+        .filter(d => !existingNames.has(d.name))
+        .map(d => ({ name: d.name, ...d.cfg } as any)),
+    ];
+    return { ...config, databases: merged } as MCPConfig;
   }
 
-  private static getDefaultPort(type: string): number {
-    switch (type) {
-      case 'postgresql': return 5432;
-      case 'mysql': return 3306;
-      case 'redis': return 6379;
-      case 'mongodb': return 27017;
-      case 'cassandra': return 9042;
-      default: return 3000;
+  private static getPotentialMCPConfigPaths(): string[] {
+    const paths: string[] = [];
+    const cwd = process.cwd();
+    const home = process.env.HOME || process.env.USERPROFILE || '';
+
+    const add = (p?: string) => { if (p) paths.push(p); };
+
+    const envSingle = process.env.PINEMCP_MCP_JSON;
+    if (envSingle) add(envSingle);
+    const envList = process.env.PINEMCP_MCP_PATHS;
+    if (envList) envList.split(',').map(s => s.trim()).filter(Boolean).forEach(p => add(p));
+
+    add(join(cwd, '.cursor', 'mcp.json'));
+    add(join(cwd, '.vscode', 'mcp.json'));
+    add(join(cwd, 'mcp.json'));
+
+    if (home) {
+      add(join(home, '.cursor', 'mcp.json'));
+      add(join(home, '.vscode', 'mcp.json'));
+      add(join(home, '.mcp', 'mcp.json'));
     }
+
+    if (process.platform === 'win32' && process.env.APPDATA) {
+      add(join(process.env.APPDATA, 'Cursor', 'User', 'globalStorage', 'cursor.mcp', 'mcp.json'));
+    }
+    if (home) {
+      add(join(home, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'cursor.mcp', 'mcp.json'));
+      add(join(home, '.config', 'Cursor', 'User', 'globalStorage', 'cursor.mcp', 'mcp.json'));
+    }
+
+    return paths;
   }
 
-  static reset(): void {
-    const defaultConfig: MCPConfig = {
-      databases: [],
-      server: {
-        name: 'PineMCP',
-        version: '1.0.0',
-        description: 'A professional MCP server supporting multiple database types',
-        port: 3000,
-        host: 'localhost',
-      },
-      logging: {
-        level: 'info',
-        format: 'text',
-      },
-    };
-
-    this.save(defaultConfig);
-  }
-
-  static async addConnectionInteractive(): Promise<any> {
-    const readline = await import('readline');
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    const question = (query: string): Promise<string> => {
-      return new Promise((resolve) => {
-        rl.question(query, resolve);
-      });
-    };
-
+  private static deriveConnectionNameFromUrl(url: string, parsed: DatabaseConfig, fallback: string): string {
     try {
-      console.log('Add New Database Connection');
-      console.log('===========================\n');
-
-      const dbTypes = ['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra'];
-      console.log('Supported database types:');
-      dbTypes.forEach((type, index) => {
-        console.log(`${index + 1}. ${type.charAt(0).toUpperCase() + type.slice(1)}`);
-      });
-
-      const typeChoice = await question('\nSelect database type (1-6): ');
-      const typeIndex = parseInt(typeChoice) - 1;
-      
-      if (typeIndex < 0 || typeIndex >= dbTypes.length) {
-        throw new Error('Invalid database type selection');
-      }
-
-      const dbType = dbTypes[typeIndex] as 'postgresql' | 'mysql' | 'sqlite' | 'redis' | 'mongodb' | 'cassandra';
-      const name = await question('Connection name: ');
-
-      if (!name.trim()) {
-        throw new Error('Connection name is required');
-      }
-
-      const databaseConfig: any = {
-        name: name.trim(),
-        type: dbType,
-      };
-
-      if (dbType === 'sqlite') {
-        const filename = await question('SQLite database file path (or :memory: for in-memory): ');
-        databaseConfig.filename = filename || ':memory:';
-      } else {
-        const host = await question(`Database host (default: localhost): `);
-        const port = await question(`Database port (default: ${this.getDefaultPort(dbType)}): `);
-        const database = await question(`Database name${dbType === 'cassandra' ? '/keyspace' : ''}: `);
-        
-        let username: string;
-        let password: string;
-        
-        if (dbType === 'redis') {
-          username = await question('Username (optional, press Enter to skip): ');
-          password = await question('Password (optional, press Enter to skip): ');
-        } else {
-          username = await question('Username: ');
-          password = await question('Password: ');
-          
-          if (!username.trim()) {
-            throw new Error('Username is required for this database type');
-          }
-        }
-
-        const ssl = await question('Use SSL? (y/N): ');
-
-        databaseConfig.host = host || 'localhost';
-        databaseConfig.port = port ? parseInt(port) : this.getDefaultPort(dbType);
-        databaseConfig.database = database || '';
-        databaseConfig.username = username.trim() || undefined;
-        databaseConfig.password = password.trim() || undefined;
-        databaseConfig.ssl = ssl.toLowerCase() === 'y' || ssl.toLowerCase() === 'yes';
-
-        if (dbType === 'redis') {
-          const db = await question('Redis database number (default: 0): ');
-          databaseConfig.db = db ? parseInt(db) : 0;
-        } else if (dbType === 'mongodb') {
-          const authSource = await question('MongoDB auth source (optional): ');
-          if (authSource) databaseConfig.authSource = authSource;
-        } else if (dbType === 'cassandra') {
-          const datacenter = await question('Cassandra datacenter (optional): ');
-          if (datacenter) databaseConfig.datacenter = datacenter;
-        }
-      }
-
-      return databaseConfig;
-    } finally {
-      rl.close();
+      const u = new URL(url);
+      const host = u.hostname || 'localhost';
+      const dbName = (u.pathname || '').replace(/^\//, '') || (parsed as any)['database'] || (parsed as any)['keyspace'] || '';
+      const scheme = (u.protocol || '').replace(':', '') || (parsed as any)['type'];
+      const base = dbName ? `${scheme}-${host}-${dbName}` : `${scheme}-${host}`;
+      return base.toLowerCase();
+    } catch {
+      return fallback;
     }
   }
 
-  static async editConnectionInteractive(existingConnection: any): Promise<any> {
-    const readline = await import('readline');
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    const question = (query: string, defaultValue?: string): Promise<string> => {
-      return new Promise((resolve) => {
-        rl.question(query, (answer) => {
-          resolve(answer || defaultValue || '');
-        });
-      });
-    };
-
-    try {
-      console.log('Edit Database Connection');
-      console.log('========================\n');
-
-      const name = await question(`Connection name (current: ${existingConnection.name}): `, existingConnection.name);
-      const dbType = existingConnection.type;
-
-      const databaseConfig: any = {
-        name: name.trim() || existingConnection.name,
-        type: dbType,
-      };
-
-      if (dbType === 'sqlite') {
-        const filename = await question(`SQLite database file path (current: ${existingConnection.filename}): `, existingConnection.filename);
-        databaseConfig.filename = filename || existingConnection.filename;
-      } else {
-        const host = await question(`Database host (current: ${existingConnection.host}): `, existingConnection.host);
-        const port = await question(`Database port (current: ${existingConnection.port}): `, existingConnection.port?.toString());
-        const database = await question(`Database name (current: ${existingConnection.database}): `, existingConnection.database);
-        
-        let username: string;
-        let password: string;
-        
-        if (dbType === 'redis') {
-          username = await question(`Username (current: ${existingConnection.username || 'none'}): `, existingConnection.username);
-          password = await question(`Password (current: ${existingConnection.password ? '***' : 'none'}): `, existingConnection.password);
-        } else {
-          username = await question(`Username (current: ${existingConnection.username}): `, existingConnection.username);
-          password = await question(`Password (current: ${existingConnection.password ? '***' : 'none'}): `, existingConnection.password);
-          
-          if (!username.trim()) {
-            throw new Error('Username is required for this database type');
-          }
-        }
-
-        const ssl = await question(`Use SSL? (current: ${existingConnection.ssl ? 'y' : 'n'}) (y/N): `, existingConnection.ssl ? 'y' : 'n');
-
-        databaseConfig.host = host || existingConnection.host;
-        databaseConfig.port = port ? parseInt(port) : existingConnection.port;
-        databaseConfig.database = database || existingConnection.database;
-        databaseConfig.username = username.trim() || existingConnection.username;
-        databaseConfig.password = password.trim() || existingConnection.password;
-        databaseConfig.ssl = ssl.toLowerCase() === 'y' || ssl.toLowerCase() === 'yes';
-
-        if (dbType === 'redis') {
-          const db = await question(`Redis database number (current: ${existingConnection.db}) (default: 0): `, existingConnection.db?.toString());
-          databaseConfig.db = db ? parseInt(db) : existingConnection.db;
-        } else if (dbType === 'mongodb') {
-          const authSource = await question(`MongoDB auth source (current: ${existingConnection.authSource || 'none'}): `, existingConnection.authSource);
-          if (authSource) databaseConfig.authSource = authSource;
-        } else if (dbType === 'cassandra') {
-          const datacenter = await question(`Cassandra datacenter (current: ${existingConnection.datacenter || 'none'}): `, existingConnection.datacenter);
-          if (datacenter) databaseConfig.datacenter = datacenter;
-        }
-      }
-
-      return databaseConfig;
-    } finally {
-      rl.close();
-    }
+  private static normalizeName(raw: string): string {
+    return raw.toLowerCase().replace(/[^a-z0-9-_]/g, '-');
   }
 }

@@ -23,6 +23,11 @@ export class DataExportImportService {
       throw new Error('Connection not found');
     }
 
+    const sqlLike = ['postgresql', 'mysql', 'sqlite', 'mssql'];
+    if (!sqlLike.includes(db.getType())) {
+      return { success: false, message: `Export not supported for ${db.getType()}`, recordCount: 0 };
+    }
+
     try {
       const data: any[] = [];
       let recordCount = 0;
@@ -319,7 +324,7 @@ export class DataExportImportService {
       if (char === '"') {
         if (inQuotes && line[i + 1] === '"') {
           current += '"';
-          i++; // Skip next quote
+          i++;
         } else {
           inQuotes = !inQuotes;
         }
@@ -383,7 +388,7 @@ export class DataExportImportService {
       } else if (char === quoteChar && inQuotes) {
         if (valuesStr[i + 1] === quoteChar) {
           current += char;
-          i++; // Skip next quote
+          i++;
         } else {
           inQuotes = false;
           quoteChar = '';
@@ -461,6 +466,11 @@ export class DataExportImportService {
   ): Promise<void> {
     if (batch.length === 0) return;
     
+    const sqlLike = ['postgresql', 'mysql', 'sqlite', 'mssql'];
+    if (!sqlLike.includes(db.getType())) {
+      throw new Error(`Import not supported for ${db.getType()}`);
+    }
+
     const columns = Object.keys(batch[0]);
     const placeholders = columns.map(() => '?').join(', ');
     
@@ -477,7 +487,19 @@ export class DataExportImportService {
             query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
             break;
           case 'upsert':
-            query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ...`;
+            if (db.getType() === 'postgresql') {
+              query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
+            } else if (db.getType() === 'mysql') {
+              const updates = columns.map(c => `${c}=VALUES(${c})`).join(', ');
+              query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updates}`;
+            } else if (db.getType() === 'mssql') {
+              query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+            } else if (db.getType() === 'sqlite') {
+              const updates = columns.map(c => `${c}=excluded.${c}`).join(', ');
+              query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders}) ON CONFLICT DO UPDATE SET ${updates}`;
+            } else {
+              query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+            }
             break;
           case 'replace':
             query = `REPLACE INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;

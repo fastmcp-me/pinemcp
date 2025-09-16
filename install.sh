@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# MCP MultiDB Server - Universal Installer
-# Works on Linux, macOS, and WSL
+#!/bin/bash
+
+# PineMCP - Universal Installer (Linux, macOS, WSL)
 
 set -e
 
@@ -43,18 +44,9 @@ echo ""
 echo -e "${GREEN}Installation completed successfully!${NC}"
 echo ""
 echo -e "${BLUE}Usage:${NC}"
-echo -e "  ${YELLOW}pinemcp setup${NC}    # Configure database connections"
-echo -e "  ${YELLOW}pinemcp start${NC}    # Start the server"
-echo -e "  ${YELLOW}pinemcp --help${NC}   # Show all options"
+echo -e "  ${YELLOW}pinemcp start${NC}                  # Start the server (stdio)"
+echo -e "  ${YELLOW}pinemcp test-connection --name <n>${NC}  # Validate a connection"
+echo -e "  ${YELLOW}pinemcp --help${NC}                 # Show all options"
 echo ""
-echo -e "${BLUE}For MCP client integration:${NC}"
-echo -e "1. Run: ${YELLOW}pinemcp setup${NC} to configure databases"
-echo -e "2. Add to your MCP client configuration:"
-echo ""
-echo -e "${YELLOW}\"pinemcp\": {${NC}"
-echo -e "${YELLOW}  \"command\": \"pinemcp\",${NC}"
-echo -e "${YELLOW}  \"args\": [\"start\"]${NC}"
-echo -e "${YELLOW}}${NC}"
-echo ""
-echo -e "${GREEN}Ready to use! Run 'pinemcp setup' to get started.${NC}"
-echo -e "${BLUE}See docs/mcp-integration.md for detailed client setup guides.${NC}"
+echo -e "${BLUE}Configure connections via your MCP client configuration.${NC}"
+echo -e "See docs/mcp-integration.md for client setup guides."

@@ -1,7 +1,7 @@
 import { BaseDatabaseAdapter } from '../adapters/base-database-adapter.js';
 import { DatabaseConnectionManager } from '../adapters/database-connection-manager.js';
 import { QueryAnalysisResult, QueryTemplate } from '../types/schema.js';
-import { writeFileSync, readFileSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 export class QueryAnalysisService {
@@ -32,7 +32,7 @@ export class QueryAnalysisService {
     const startTime = Date.now();
     
     try {
-      const result = await db.executeQuery(query, parameters);
+      const result = await db.safeExecuteQuery(query, parameters);
       const executionTime = Date.now() - startTime;
       
       const performance = this.analyzePerformance(query, executionTime, result);
@@ -348,7 +348,7 @@ export class QueryAnalysisService {
     try {
       const dataDir = join(process.cwd(), 'data');
       if (!existsSync(dataDir)) {
-        require('fs').mkdirSync(dataDir, { recursive: true });
+        mkdirSync(dataDir, { recursive: true });
       }
       writeFileSync(this.templatesPath, JSON.stringify(this.templates, null, 2));
     } catch (error) {
@@ -364,7 +364,7 @@ export class QueryAnalysisService {
       const historyPath = join(process.cwd(), 'data', 'query-history.json');
       const dataDir = join(process.cwd(), 'data');
       if (!existsSync(dataDir)) {
-        require('fs').mkdirSync(dataDir, { recursive: true });
+        mkdirSync(dataDir, { recursive: true });
       }
       writeFileSync(historyPath, JSON.stringify(this.queryHistory, null, 2));
     } catch (error) {

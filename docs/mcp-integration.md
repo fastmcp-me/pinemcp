@@ -1,217 +1,223 @@
-# MCP Client Integration
+# MCP Integration
 
-How to connect PineMCP with different MCP-compatible clients.
+This guide shows how to register PineMCP as an MCP stdio server in common MCP clients and how to define database connections. It also documents all supported configuration tags and provides templates per database type.
 
-## Supported clients
+## How PineMCP runs (stdio)
+Start PineMCP as a stdio server:
+```bash
+pinemcp start
+```
+You can also run a built file or dockerized server. Your MCP client will launch the command you specify.
 
-- **Claude Desktop** - Anthropic's desktop application
-- **Cursor IDE** - AI-powered code editor
-- **Other MCP clients** - Any client supporting the MCP protocol
+## Client Integration
+Below are standard client-specific setup methods. Prefer using each client’s Settings UI when available. For each client we include four ways to launch PineMCP: npm (global), npx, Docker (local image), and local build.
 
-## Cursor IDE
+### Cursor
+Settings → Tools & Integrations → Add Custom MCP.
+- npm (global):
+  - Command: `pinemcp`
+  - Args: `start`
+- npx:
+  - Command: `npx`
+  - Args: `pinemcp start`
+- Docker (local image you built):
+  - Command: `docker`
+  - Args: `run --rm -i pinemcp:latest start`
+- Local build (from repo `dist/`):
+  - Command: `node`
+  - Args: `./dist/index.js start`
 
-### Config file location
-- **Windows**: `%APPDATA%\Cursor\User\globalStorage\cursor.mcp\mcp.json`
-- **macOS**: `~/Library/Application Support/Cursor/User/globalStorage/cursor.mcp/mcp.json`
-- **Linux**: `~/.config/Cursor/User/globalStorage/cursor.mcp/mcp.json`
+Add your databases using the client’s fields for server configuration (JSON snippet or UI), e.g. a map of `databases` or list of `connections` as shown in the Templates section below. PineMCP does not read a separate CLI config file; it discovers connections from the MCP client configuration.
 
-### Setup steps
+### Claude Desktop
+Settings → Developer → Edit Config.
+- npm (global): command `pinemcp`, args `start`
+- npx: command `npx`, args `pinemcp start`
+- Docker: command `docker`, args `run --rm -i pinemcp:latest start`
+- Local build: command `node`, args `./dist/index.js start`
 
-1. **Open Cursor Settings** (`Ctrl/Cmd + ,`)
-2. **Search for "MCP"**
-3. **Add this config:**
+Add your databases under this server entry using the JSON fields from the Templates section.
 
+### VS Code (extensions with MCP support)
+Open the extension’s MCP settings (or workspace settings if supported) and add a new MCP server.
+- npm (global): command `pinemcp`, args `start`
+- npx: command `npx`, args `pinemcp start`
+- Docker: command `docker`, args `run --rm -i pinemcp:latest start`
+- Local build: command `node`, args `./dist/index.js start`
+
+Provide connection definitions for PineMCP via the extension’s server-config JSON. PineMCP does not require a `--config` file.
+
+### Cline (VS Code extension)
+Cline → MCP Servers → Configure (UI).
+- npm (global): command `pinemcp`, args `start`
+- npx: command `npx`, args `pinemcp start`
+- Docker: command `docker`, args `run --rm -i pinemcp:latest start`
+- Local build: command `node`, args `./dist/index.js start`
+
+Add your database entries in the PineMCP server config block using the fields below. No separate CLI config is needed.
+
+Note: Each client may name fields slightly differently (e.g., a `parameters` or `config` block associated with the server). Use the templates below to populate `databases`, `connections`, or similar properties your client exposes.
+
+## All Supported Config Tags per Database Type
+You can define connections as full objects or URLs. PineMCP merges and normalizes your entries.
+
+Common fields:
+- `name` (string)
+- `type` (enum): `postgresql`, `mysql`, `sqlite`, `redis`, `mongodb`, `cassandra`, `mssql`, `dynamodb`
+- `url` (string, optional) – can encode host/port/db/credentials where supported
+- `host` (string, optional)
+- `port` (number, optional)
+- `database` (string, optional) – SQL DB name; MongoDB database; Cassandra keyspace alternative
+- `username` (string, optional)
+- `password` (string, optional)
+- `ssl` (boolean, optional)
+
+Type-specific:
+- PostgreSQL (`postgresql`)
+  - Defaults: port 5432; `url` supports `?sslmode=require|disable`
+- MySQL (`mysql`)
+  - Defaults: port 3306; `url` supports `?ssl=true`
+- SQLite (`sqlite`)
+  - `filename` (string), e.g., `:memory:` or path
+- Redis (`redis`)
+  - `db` (number), default 0; defaults port 6379
+- MongoDB (`mongodb`)
+  - `authSource`; defaults port 27017
+- Cassandra (`cassandra`)
+  - `keyspace`, `datacenter`; defaults port 9042
+- Microsoft SQL Server (`mssql`)
+  - Defaults: port 1433
+- DynamoDB (`dynamodb`)
+  - `region` or `endpoint` required; AWS creds via environment variables
+
+URL parsing examples supported by PineMCP:
+- Postgres: `postgres://user:pass@host:5432/db?sslmode=require`
+- MySQL: `mysql://user:pass@host:3306/db?ssl=true`
+- SQLite: `sqlite:///absolute/path/to/file.db` or `sqlite::memory:`
+- Redis: `redis://:pass@host:6379/0`
+- MongoDB: `mongodb://user:pass@host:27017/db?authSource=admin`
+- Cassandra: `cassandra://user:pass@host:9042/ks?datacenter=dc1`
+- MSSQL: `mssql://user:pass@host:1433/app`
+- DynamoDB: `dynamodb://?region=us-east-1` or endpoint `http://localhost:8000`
+
+## Templates: Database Config Entries
+Use these JSON snippets in your MCP client’s server config block for PineMCP. You can place them under the field your client uses (e.g., `databases`, `connections`, or a custom `config` object).
+
+### PostgreSQL
 ```json
 {
-  "mcpServers": {
-    "pinemcp": {
-      "command": "pinemcp",
-      "args": ["start"],
-      "env": {}
-    }
-  }
+  "name": "pg-main",
+  "type": "postgresql",
+  "host": "localhost",
+  "port": 5432,
+  "database": "app",
+  "username": "user",
+  "password": "pass",
+  "ssl": false
+}
+```
+URL: `postgres://user:pass@localhost:5432/app?sslmode=require`
+
+### MySQL
+```json
+{
+  "name": "mysql-main",
+  "type": "mysql",
+  "host": "localhost",
+  "port": 3306,
+  "database": "app",
+  "username": "user",
+  "password": "pass",
+  "ssl": true
+}
+```
+URL: `mysql://user:pass@localhost:3306/app?ssl=true`
+
+### SQLite
+```json
+{
+  "name": "sqlite-local",
+  "type": "sqlite",
+  "filename": ":memory:"
+}
+```
+URL: `sqlite:///absolute/path/to/file.db`
+
+### Redis
+```json
+{
+  "name": "redis-cache",
+  "type": "redis",
+  "host": "localhost",
+  "port": 6379,
+  "db": 0,
+  "password": "pass"
+}
+```
+URL: `redis://:pass@localhost:6379/0`
+
+### MongoDB
+```json
+{
+  "name": "mongo-docs",
+  "type": "mongodb",
+  "host": "localhost",
+  "port": 27017,
+  "database": "docs",
+  "username": "user",
+  "password": "pass",
+  "authSource": "admin"
+}
+```
+URL: `mongodb://user:pass@localhost:27017/docs?authSource=admin`
+
+### Cassandra
+```json
+{
+  "name": "cassandra-ks",
+  "type": "cassandra",
+  "host": "localhost",
+  "port": 9042,
+  "keyspace": "ks1",
+  "username": "user",
+  "password": "pass",
+  "datacenter": "dc1"
+}
+```
+URL: `cassandra://user:pass@localhost:9042/ks1?datacenter=dc1`
+
+### MSSQL
+```json
+{
+  "name": "mssql-main",
+  "type": "mssql",
+  "host": "localhost",
+  "port": 1433,
+  "database": "app",
+  "username": "user",
+  "password": "pass"
+}
+```
+URL: `mssql://user:pass@localhost:1433/app`
+
+### DynamoDB
+```json
+{
+  "name": "dynamodb-local",
+  "type": "dynamodb",
+  "region": "us-east-1"
+}
+```
+Local endpoint:
+```json
+{
+  "name": "dynamodb-local",
+  "type": "dynamodb",
+  "endpoint": "http://localhost:8000"
 }
 ```
 
-4. **Restart Cursor IDE**
-
-### Or do it manually
-
-1. Go to the config file location
-2. Create or edit the `mcp.json` file
-3. Add the server configuration
-4. Save and restart Cursor
-
-## Claude Desktop
-
-### Config file location
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux**: `~/.config/Claude/claude_desktop_config.json`
-
-### Setup steps
-
-1. **Find the config file**
-2. **Add this config:**
-
-```json
-{
-  "mcpServers": {
-    "pinemcp": {
-      "command": "pinemcp",
-      "args": ["start"],
-      "env": {}
-    }
-  }
-}
-```
-
-3. **Restart Claude Desktop**
-
-## Other MCP clients
-
-### Generic config
-
-Most MCP clients use a similar configuration format:
-
-```json
-{
-  "mcpServers": {
-    "pinemcp": {
-      "command": "pinemcp",
-      "args": ["start"],
-      "env": {}
-    }
-  }
-}
-```
-
-### Client-specific notes
-
-- **Check your client's docs** for exact configuration file locations
-- **Some clients use different field names** (e.g., `servers` instead of `mcpServers`)
-- **Environment variables** can be added to the `env` object if needed
-
-## Test it works
-
-### Check the integration
-
-1. **Start your MCP client**
-2. **Look for PineMCP** in available tools
-3. **Try a simple query** like "Show me all tables"
-4. **Check the server logs** if issues occur
-
-### Troubleshooting
-
-**Server not showing up:**
-- Check the configuration file syntax
-- Make sure the server is installed globally
-- Restart your MCP client
-- Check file permissions
-
-**Connection errors:**
-- Run `pinemcp setup` to configure databases
-- Test with `pinemcp start` directly
-- Check database server status
-
-**Permission issues:**
-- Make sure the MCP server is in your PATH
-- Check file permissions on configuration files
-- Run installation with appropriate privileges
-
-## Advanced config
-
-### Custom environment variables
-
-```json
-{
-  "mcpServers": {
-    "pinemcp": {
-      "command": "pinemcp",
-      "args": ["start"],
-      "env": {
-        "NODE_ENV": "production",
-        "LOG_LEVEL": "debug"
-      }
-    }
-  }
-}
-```
-
-### Multiple server instances
-
-```json
-{
-  "mcpServers": {
-    "pinemcp-dev": {
-      "command": "pinemcp",
-      "args": ["start", "--config", "dev-config.json"],
-      "env": {}
-    },
-    "pinemcp-prod": {
-      "command": "pinemcp",
-      "args": ["start", "--config", "prod-config.json"],
-      "env": {}
-    }
-  }
-}
-```
-
-### Custom config files
-
-```json
-{
-  "mcpServers": {
-    "pinemcp": {
-      "command": "pinemcp",
-      "args": ["start", "--config", "/path/to/custom/config.json"],
-      "env": {}
-    }
-  }
-}
-```
-
-## Security stuff
-
-### Database credentials
-- Store sensitive credentials in environment variables
-- Use connection strings with encrypted passwords
-- Regularly rotate database passwords
-
-### Network security
-- Use SSL/TLS for database connections
-- Restrict database access to necessary IPs
-- Consider using VPNs for remote connections
-
-### File permissions
-- Secure configuration files with appropriate permissions
-- Avoid storing credentials in plain text
-- Use system keychains when available
-
-## Getting help
-
-- **Check the [Troubleshooting Guide](troubleshooting.md)**
-- **Open an [issue](https://github.com/Zyleree/PineMCP/issues)**
-- **Join our [discussions](https://github.com/Zyleree/PineMCP/discussions)**
-
-## Examples
-
-### Basic query
-```
-"Show me all users in the database"
-```
-
-### Schema analysis
-```
-"Compare the schema between my dev and production databases"
-```
-
-### Data export
-```
-"Export the orders table to CSV format"
-```
-
-### Performance analysis
-```
-"Analyze the performance of this query: SELECT * FROM users WHERE email = 'test@example.com'"
-```
+## Notes
+- PineMCP does not persist configuration and does not accept a `--config` file. Define all connections in your MCP client’s configuration.
+- You can use URLs instead of individual fields where supported; PineMCP will parse and normalize them.
+- Keep credentials secure and limit DB user privileges.

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const MCPConfig = z.object({
   databases: z.array(z.object({
     name: z.string(),
-    type: z.enum(['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra']),
+    type: z.enum(['postgresql', 'mysql', 'sqlite', 'redis', 'mongodb', 'cassandra', 'mssql', 'dynamodb']),
     url: z.string().optional(),
     host: z.string().optional(),
     port: z.number().optional(),
@@ -18,11 +18,9 @@ export const MCPConfig = z.object({
     datacenter: z.string().optional(),
   })),
   server: z.object({
-    name: z.string().default('MCP MultiDB Server'),
-    version: z.string().default('1.0.0'),
+    name: z.string().default('PineMCP'),
+    version: z.string().default('2.0.0'),
     description: z.string().default('A professional MCP server supporting multiple database types'),
-    port: z.number().default(3000).optional(),
-    host: z.string().default('localhost').optional(),
   }),
   logging: z.object({
     level: z.enum(['error', 'warn', 'info', 'debug']).default('info'),

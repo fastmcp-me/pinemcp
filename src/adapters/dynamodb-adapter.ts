@@ -43,7 +43,6 @@ export class DynamoDBAdapter extends BaseDatabaseAdapter {
     }
 
     try {
-      // Parse the query - for DynamoDB, we expect JSON format
       const queryObj = JSON.parse(query);
       
       if (queryObj.operation === 'scan') {
@@ -96,7 +95,6 @@ export class DynamoDBAdapter extends BaseDatabaseAdapter {
     const result = await this.client.send(command);
     const tableNames = result.TableNames || [];
     
-    // Get full table info for each table
     const tables: TableInfo[] = [];
     for (const tableName of tableNames) {
       try {
@@ -105,7 +103,6 @@ export class DynamoDBAdapter extends BaseDatabaseAdapter {
           tables.push(tableInfo);
         }
       } catch (error) {
-        // If we can't get full info, create a basic table info
         tables.push({
           name: tableName,
           type: 'table',

@@ -42,7 +42,6 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
 
     const request = this.pool.request();
     
-    // Add parameters if provided
     if (parameters) {
       parameters.forEach((param, index) => {
         request.input(`param${index}`, param);
@@ -69,7 +68,6 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
     const result = await this.executeQuery(query);
     const tableNames = result.rows.map(row => row.TABLE_NAME as string);
     
-    // Get full table info for each table
     const tables: TableInfo[] = [];
     for (const tableName of tableNames) {
       try {
@@ -78,7 +76,6 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
           tables.push(tableInfo);
         }
       } catch (error) {
-        // If we can't get full info, create a basic table info
         tables.push({
           name: tableName,
           schema: 'dbo',
@@ -96,7 +93,6 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
   async getTableInfo(tableName: string, schema?: string): Promise<TableInfo | null> {
     const schemaName = schema || 'dbo';
     
-    // Get table columns
     const columnsQuery = `
       SELECT 
         c.COLUMN_NAME,
@@ -133,7 +129,6 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
 
     const columnsResult = await this.executeQuery(columnsQuery, [schemaName, tableName]);
     
-    // Get indexes
     const indexesQuery = `
       SELECT 
         i.name as INDEX_NAME,
@@ -151,7 +146,6 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
 
     const indexesResult = await this.executeQuery(indexesQuery, [schemaName, tableName]);
     
-    // Get constraints
     const constraintsQuery = `
       SELECT 
         tc.CONSTRAINT_NAME,
@@ -261,19 +255,16 @@ export class MSSQLAdapter extends BaseDatabaseAdapter {
     if (!this.pool) {
       throw new Error('Not connected to database');
     }
-    // MSSQL transactions are handled at the request level
   }
 
   async commitTransaction(): Promise<void> {
-    // MSSQL transactions are handled at the request level
   }
 
   async rollbackTransaction(): Promise<void> {
-    // MSSQL transactions are handled at the request level
   }
 
   isInTransaction(): boolean {
-    return false; // MSSQL transactions are handled at the request level
+    return false;
   }
 
   private mapFields(columns: Record<string, any>): FieldInfo[] {

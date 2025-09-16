@@ -20,7 +20,6 @@ dist
 *.tar.gz
 .github
 docs
-src
 __tests__
 *.test.ts
 *.test.js

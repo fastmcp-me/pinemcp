@@ -26,11 +26,11 @@ export abstract class BaseDatabaseAdapter {
     }
     
     const dangerousPatterns = [
-      /;\s*drop\s+table/i,
-      /;\s*delete\s+from/i,
-      /;\s*truncate\s+table/i,
-      /;\s*alter\s+table/i,
-      /;\s*drop\s+database/i,
+      /(^|\s)drop\s+table\b/i,
+      /(^|\s)drop\s+database\b/i,
+      /(^|\s)truncate\s+table\b/i,
+      /(^|\s)alter\s+table\b/i,
+      /(^|\s)delete\s+from\b(?!.*\bwhere\b)/i,
     ];
     
     for (const pattern of dangerousPatterns) {
@@ -51,6 +51,10 @@ export abstract class BaseDatabaseAdapter {
   abstract rollbackTransaction(): Promise<void>;
   abstract isInTransaction(): boolean;
   
+  getType(): string {
+    return this.config.type;
+  }
+
   async ensureConnection(): Promise<void> {
     if (!this.isConnected()) {
       await this.connect();

@@ -106,7 +106,6 @@ export class DatabaseAdapterFactory {
   }
 
   static getDefaultConfig(type: DatabaseType): Partial<DatabaseConfig> {
-    // Return minimal configuration - all connection details must be provided
     switch (type) {
       case 'postgresql':
         return { type: 'postgresql' };

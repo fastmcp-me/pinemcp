@@ -1,412 +1,328 @@
-# MCP Tools Reference
+# Tools Reference
 
-All the MCP tools you can use with PineMCP.
+This page documents all MCP tools exposed by PineMCP. Shapes shown below reflect the server’s behavior; adapters may add minor variations in result fields.
 
-## Database operations
+Conventions:
+- Inputs are listed with required/optional fields.
+- Outputs show typical JSON returned in the `content[0].text` field.
+- Examples use nominal values; adjust `connection` to your configured name.
+
+## Query & Metadata
 
 ### execute_query
-Run queries on any connected database.
-
-**What you need:**
-- `query` (string, required) - SQL query, JSON for MongoDB, or Redis commands
-- `parameters` (array, optional) - Query parameters
-- `connection` (string, optional) - Connection name (uses current if not specified)
-
-**Example:**
+- Required: `query`
+- Optional: `parameters[]`, `connection`
+- Returns: `{ rows, rowCount, fields }`
+- Example:
 ```json
 {
-  "query": "SELECT * FROM users WHERE age > ?",
-  "parameters": ["25"],
-  "connection": "main-db"
+  "name": "execute_query",
+  "arguments": {
+    "connection": "main",
+    "query": "SELECT id, name FROM users WHERE id = $1",
+    "parameters": ["42"]
+  }
 }
 ```
 
 ### get_tables
-List all tables/collections in the current database.
-
-**What you need:**
-- `connection` (string, optional) - Connection name
-
-**Example:**
+- Optional: `connection`
+- Returns: `[{ name, schema, type }]`
+- Example:
 ```json
-{
-  "connection": "main-db"
-}
+{ "name": "get_tables", "arguments": { "connection": "main" } }
 ```
 
 ### get_table_info
-Get detailed info about a specific table/collection.
-
-**What you need:**
-- `table_name` (string, required) - Name of the table/collection
-- `schema` (string, optional) - Schema name
-- `connection` (string, optional) - Connection name
-
-**Example:**
+- Required: `table_name`
+- Optional: `schema`, `connection`
+- Returns: `{ columns[], indexes[], constraints[] }`
+- Example:
 ```json
 {
-  "table_name": "users",
-  "schema": "public",
-  "connection": "main-db"
+  "name": "get_table_info",
+  "arguments": { "connection": "main", "table_name": "users", "schema": "public" }
 }
 ```
 
 ### get_database_stats
-Get database statistics and info.
-
-**What you need:**
-- `connection` (string, optional) - Connection name
-
-**Example:**
+- Optional: `connection`
+- Returns: `{ totalTables, totalViews, totalIndexes, databaseSize, connectionCount? }`
+- Example:
 ```json
-{
-  "connection": "main-db"
-}
+{ "name": "get_database_stats", "arguments": { "connection": "main" } }
 ```
 
 ### validate_connection
-Test database connection.
-
-**What you need:**
-- `connection` (string, optional) - Connection name
-
-**Example:**
+- Optional: `connection`
+- Returns: `{ connected: boolean }`
+- Example:
 ```json
-{
-  "connection": "main-db"
-}
+{ "name": "validate_connection", "arguments": { "connection": "main" } }
 ```
 
-## Transaction management
+## Transactions & Batch
 
 ### begin_transaction
-Start a database transaction.
-
-**What you need:**
-- `connection` (string, optional) - Connection name
+- Optional: `connection`
+- Side effect: starts a transaction on the connection.
+- Example:
+```json
+{ "name": "begin_transaction", "arguments": { "connection": "main" } }
+```
 
 ### commit_transaction
-Commit the current transaction.
-
-**What you need:**
-- `connection` (string, optional) - Connection name
+- Optional: `connection`
+- Side effect: commits current transaction.
+- Example:
+```json
+{ "name": "commit_transaction", "arguments": { "connection": "main" } }
+```
 
 ### rollback_transaction
-Rollback the current transaction.
-
-**What you need:**
-- `connection` (string, optional) - Connection name
+- Optional: `connection`
+- Side effect: rolls back current transaction.
+- Example:
+```json
+{ "name": "rollback_transaction", "arguments": { "connection": "main" } }
+```
 
 ### execute_batch
-Run multiple queries in a transaction.
-
-**What you need:**
-- `operations` (array, required) - Array of database operations
-- `connection` (string, optional) - Connection name
-
-**Example:**
+- Required: `operations[]` with items `{ type: 'SELECT'|'INSERT'|'UPDATE'|'DELETE'|'CREATE'|'DROP'|'ALTER', query, parameters[] }`
+- Optional: `connection`
+- Returns: `QueryResult[]`
+- Example:
 ```json
 {
-  "operations": [
-    {
-      "type": "INSERT",
-      "query": "INSERT INTO users (name, email) VALUES (?, ?)",
-      "parameters": ["John", "john@example.com"]
-    },
-    {
-      "type": "UPDATE",
-      "query": "UPDATE users SET last_login = NOW() WHERE email = ?",
-      "parameters": ["john@example.com"]
-    }
-  ],
-  "connection": "main-db"
+  "name": "execute_batch",
+  "arguments": {
+    "connection": "main",
+    "operations": [
+      { "type": "INSERT", "query": "INSERT INTO tags(name) VALUES ($1)", "parameters": ["dev"] },
+      { "type": "SELECT", "query": "SELECT * FROM tags WHERE name=$1", "parameters": ["dev"] }
+    ]
+  }
 }
 ```
 
-## Connection management
+## Connection Management
+
+Note: PineMCP expects connections to be provided via client configuration. These tools remain available for dynamic sessions.
 
 ### add_connection
-Add a new database connection.
-
-**What you need:**
-- `name` (string, required) - Connection name
-- `config` (object, required) - Database configuration
-
-**Example:**
+- Required: `name`, `config { type, ... }`
+- `config.type` supports: `postgresql`, `mysql`, `sqlite`, `redis`, `mongodb`, `cassandra`, `mssql`, `dynamodb`
+- Example:
 ```json
 {
-  "name": "redis-cache",
-  "config": {
-    "type": "redis",
-    "host": "localhost",
-    "port": 6379,
-    "db": 0
+  "name": "add_connection",
+  "arguments": {
+    "name": "pg-temp",
+    "config": {
+      "type": "postgresql",
+      "host": "localhost",
+      "port": 5432,
+      "database": "app",
+      "username": "user",
+      "password": "pass",
+      "ssl": false
+    }
   }
 }
 ```
 
 ### remove_connection
-Remove a database connection.
-
-**What you need:**
-- `name` (string, required) - Connection name
+- Required: `name`
+- Example:
+```json
+{ "name": "remove_connection", "arguments": { "name": "pg-temp" } }
+```
 
 ### list_connections
-List all database connections.
-
-**What you need:** Nothing
+- Returns: `[{ name, type, connected }]`
+- Example:
+```json
+{ "name": "list_connections", "arguments": {} }
+```
 
 ### switch_connection
-Switch to a different database connection.
-
-**What you need:**
-- `name` (string, required) - Connection name
+- Required: `name`
+- Example:
+```json
+{ "name": "switch_connection", "arguments": { "name": "main" } }
+```
 
 ### get_current_connection
-Get the current active connection name.
+- Returns: `{ currentConnection }`
+- Example:
+```json
+{ "name": "get_current_connection", "arguments": {} }
+```
 
-**What you need:** Nothing
-
-## Schema management
+## Schema Operations
 
 ### compare_schemas
-Compare schemas between two database connections.
-
-**What you need:**
-- `source_connection` (string, required) - Source connection name
-- `target_connection` (string, required) - Target connection name
-
-**Example:**
+- Required: `source_connection`, `target_connection`
+- Returns: `{ identical, differences[], summary{ tablesAdded, tablesRemoved, tablesModified, columnsAdded, columnsRemoved, columnsModified } }`
+- Example:
 ```json
 {
-  "source_connection": "dev-db",
-  "target_connection": "prod-db"
+  "name": "compare_schemas",
+  "arguments": { "source_connection": "main", "target_connection": "staging" }
 }
 ```
 
 ### generate_migration
-Generate migration script from schema comparison.
-
-**What you need:**
-- `source_connection` (string, required) - Source connection name
-- `target_connection` (string, required) - Target connection name
-- `migration_name` (string, required) - Migration name
-
-**Example:**
+- Required: `source_connection`, `target_connection`, `migration_name`
+- Returns: `Migration { id, name, timestamp, steps[] }`
+- Example:
 ```json
 {
-  "source_connection": "dev-db",
-  "target_connection": "prod-db",
-  "migration_name": "add_user_roles"
+  "name": "generate_migration",
+  "arguments": { "source_connection": "main", "target_connection": "staging", "migration_name": "align-staging" }
 }
 ```
 
 ### generate_ddl
-Generate DDL for a database connection.
-
-**What you need:**
-- `connection` (string, required) - Connection name
-- `include_data` (boolean, optional) - Include data in DDL
-- `include_indexes` (boolean, optional) - Include indexes
-- `include_constraints` (boolean, optional) - Include constraints
-- `format` (string, optional) - Output format (sql, json, yaml)
-
-**Example:**
+- Required: `connection`
+- Optional: `include_data`, `include_indexes`, `include_constraints`, `format: sql|json|yaml`
+- Returns: string (DDL or serialized representation)
+- Example:
 ```json
 {
-  "connection": "main-db",
-  "include_indexes": true,
-  "include_constraints": true,
-  "format": "sql"
+  "name": "generate_ddl",
+  "arguments": { "connection": "main", "include_indexes": true, "include_constraints": true, "format": "sql" }
 }
 ```
 
 ### validate_schema
-Validate schema consistency.
+- Required: `connection`
+- Returns: `{ valid, issues[] }`
+- Example:
+```json
+{ "name": "validate_schema", "arguments": { "connection": "main" } }
+```
 
-**What you need:**
-- `connection` (string, required) - Connection name
-
-## Data export/import
+## Data Export / Import
 
 ### export_data
-Export data from database to file.
-
-**What you need:**
-- `connection` (string, required) - Connection name
-- `output_path` (string, required) - Output file path
-- `format` (string, required) - Export format (json, csv, sql, xml)
-- `tables` (array, optional) - Specific tables to export
-- `where_clause` (string, optional) - WHERE clause for filtering
-- `limit` (number, optional) - Limit number of records
-- `include_schema` (boolean, optional) - Include schema information
-- `pretty_print` (boolean, optional) - Pretty print output
-
-**Example:**
+- Required: `connection`, `output_path`, `format: json|csv|sql|xml`
+- Optional: `tables[]`, `where_clause`, `limit`, `include_schema`, `pretty_print`
+- Returns: `{ success, message, recordCount }`
+- Example:
 ```json
 {
-  "connection": "main-db",
-  "output_path": "/tmp/users_export.json",
-  "format": "json",
-  "tables": ["users", "orders"],
-  "where_clause": "created_at > '2024-01-01'",
-  "limit": 1000,
-  "pretty_print": true
-}
-```
-
-### import_data
-Import data from file to database.
-
-**What you need:**
-- `connection` (string, required) - Connection name
-- `file_path` (string, required) - Input file path
-- `format` (string, required) - Import format (json, csv, sql, xml)
-- `table_name` (string, required) - Target table name
-- `mode` (string, optional) - Import mode (insert, upsert, replace)
-- `batch_size` (number, optional) - Batch size for import
-- `skip_errors` (boolean, optional) - Skip errors and continue
-- `mapping` (object, optional) - Column mapping
-
-**Example:**
-```json
-{
-  "connection": "main-db",
-  "file_path": "/tmp/users_import.csv",
-  "format": "csv",
-  "table_name": "users",
-  "mode": "insert",
-  "batch_size": 1000,
-  "skip_errors": false
-}
-```
-
-## Query analysis
-
-### analyze_query
-Analyze query performance and get recommendations.
-
-**What you need:**
-- `connection` (string, required) - Connection name
-- `query` (string, required) - Query to analyze
-- `parameters` (array, optional) - Query parameters
-
-**Example:**
-```json
-{
-  "connection": "main-db",
-  "query": "SELECT * FROM users WHERE email = ?",
-  "parameters": ["john@example.com"]
-}
-```
-
-### get_query_history
-Get query execution history.
-
-**What you need:**
-- `limit` (number, optional) - Number of queries to return
-
-### get_slow_queries
-Get slow queries from history.
-
-**What you need:**
-- `threshold` (number, optional) - Execution time threshold in milliseconds
-
-### get_query_statistics
-Get query performance statistics.
-
-**What you need:** Nothing
-
-### save_query_template
-Save a query template.
-
-**What you need:**
-- `name` (string, required) - Template name
-- `description` (string, required) - Template description
-- `query` (string, required) - Query template with {parameter} placeholders
-- `parameters` (array, required) - Template parameters
-- `tags` (array, optional) - Template tags
-- `connection_type` (string, required) - Database type
-
-**Example:**
-```json
-{
-  "name": "find_user_by_email",
-  "description": "Find user by email address",
-  "query": "SELECT * FROM users WHERE email = {email}",
-  "parameters": [
-    {
-      "name": "email",
-      "type": "string",
-      "required": true
-    }
-  ],
-  "tags": ["user", "search"],
-  "connection_type": "postgresql"
-}
-```
-
-### get_query_templates
-Get query templates.
-
-**What you need:**
-- `connection_type` (string, optional) - Filter by database type
-- `tags` (array, optional) - Filter by tags
-
-### execute_template
-Run a query template with parameters.
-
-**What you need:**
-- `connection` (string, required) - Connection name
-- `template_id` (string, required) - Template ID
-- `parameters` (object, required) - Parameter values
-
-**Example:**
-```json
-{
-  "connection": "main-db",
-  "template_id": "find_user_by_email",
-  "parameters": {
-    "email": "john@example.com"
+  "name": "export_data",
+  "arguments": {
+    "connection": "main",
+    "output_path": "./data/export.sql",
+    "format": "sql",
+    "tables": ["users"],
+    "limit": 100
   }
 }
 ```
 
-## Error handling
-
-All tools return standardized responses:
-
-**Success response:**
+### import_data
+- Required: `connection`, `file_path`, `format: json|csv|sql|xml`, `table_name`
+- Optional: `mode: insert|upsert|replace`, `batch_size`, `skip_errors`, `mapping{}`
+- Returns: `{ success, message, recordCount }`
+- Example:
 ```json
 {
-  "content": [
-    {
-      "type": "text",
-      "text": "Operation completed successfully"
-    }
-  ]
+  "name": "import_data",
+  "arguments": {
+    "connection": "main",
+    "file_path": "./data/users.csv",
+    "format": "csv",
+    "table_name": "users",
+    "mode": "insert",
+    "batch_size": 500,
+    "skip_errors": true
+  }
 }
 ```
 
-**Error response:**
+## Query Analysis & Templates
+
+### analyze_query
+- Required: `connection`, `query`
+- Optional: `parameters[]`
+- Returns: `{ executionTime, rowsAffected, performance{ slow, score, recommendations[] }, executionPlan? }`
+- Example:
 ```json
 {
-  "content": [
-    {
-      "type": "text",
-      "text": "Error: Connection not found"
-    }
-  ],
-  "isError": true
+  "name": "analyze_query",
+  "arguments": { "connection": "main", "query": "SELECT * FROM users WHERE email LIKE '%@example.com'" }
 }
 ```
 
-## Best practices
+### get_query_history
+- Optional: `limit` (default 50)
+- Returns: `QueryAnalysisResult[]`
+- Example:
+```json
+{ "name": "get_query_history", "arguments": { "limit": 20 } }
+```
 
-1. **Always specify connection names** for multi-database setups
-2. **Use transactions** for related operations
-3. **Validate connections** before executing queries
-4. **Use query templates** for frequently used queries
-5. **Monitor performance** with query analysis tools
-6. **Export data regularly** for backup purposes
-7. **Use appropriate data types** for parameters
+### get_slow_queries
+- Optional: `threshold` (ms, default 1000)
+- Returns: `QueryAnalysisResult[]`
+- Example:
+```json
+{ "name": "get_slow_queries", "arguments": { "threshold": 800 } }
+```
+
+### get_query_statistics
+- Returns: `{ totalQueries, averageExecutionTime, slowQueries, mostCommonIssues[] }`
+- Example:
+```json
+{ "name": "get_query_statistics", "arguments": {} }
+```
+
+### save_query_template
+- Required: `name`, `description`, `query`, `parameters[]`, `connection_type`
+- Optional: `tags[]`
+- Returns: `Template { id, name, description, query, parameters[], tags[], connectionType, createdAt, updatedAt }`
+- Example:
+```json
+{
+  "name": "save_query_template",
+  "arguments": {
+    "name": "find-user-by-email",
+    "description": "Select user by email",
+    "query": "SELECT * FROM users WHERE email = {email}",
+    "parameters": [ { "name": "email", "type": "string", "required": true } ],
+    "tags": ["users"],
+    "connection_type": "postgresql"
+  }
+}
+```
+
+### get_query_templates
+- Optional: `connection_type`, `tags[]`
+- Returns: `Template[]`
+- Example:
+```json
+{ "name": "get_query_templates", "arguments": { "connection_type": "postgresql", "tags": ["users"] } }
+```
+
+### execute_template
+- Required: `connection`, `template_id`, `parameters{}`
+- Returns: same shape as `analyze_query`
+- Example:
+```json
+{
+  "name": "execute_template",
+  "arguments": {
+    "connection": "main",
+    "template_id": "template_123",
+    "parameters": { "email": "test@example.com" }
+  }
+}
+```
+
+## Supported Database Types
+- postgresql, mysql, sqlite, redis, mongodb, cassandra, mssql, dynamodb
+
+For client wiring, see [MCP Integration](./mcp-integration.md). For installation methods, see [Installation](./installation.md).

@@ -242,7 +242,7 @@ export class SchemaManagementService {
           id: stepId,
           type: 'create_table',
           tableName: diff.tableName,
-          sql: `CREATE TABLE ${diff.tableName} (...);`, // This would be generated from actual schema
+          sql: `CREATE TABLE ${diff.tableName} (...);`,
           rollbackSql: `DROP TABLE ${diff.tableName};`,
           description: `Create table ${diff.tableName}`,
         };
@@ -253,7 +253,7 @@ export class SchemaManagementService {
           type: 'drop_table',
           tableName: diff.tableName,
           sql: `DROP TABLE ${diff.tableName};`,
-          rollbackSql: `-- Rollback requires table recreation`, // This would be more complex
+          rollbackSql: `-- Rollback requires table recreation`,
           description: `Drop table ${diff.tableName}`,
         };
 
@@ -337,15 +337,37 @@ export class SchemaManagementService {
 
     const tables = await db.getTables();
     const ddlStatements: string[] = [];
+    const ddlObjects: any[] = [];
 
     for (const table of tables) {
       const tableInfo = await db.getTableInfo(table.name);
       if (tableInfo) {
         const tableDDL = this.generateTableDDL(table.name, tableInfo, options);
         ddlStatements.push(tableDDL);
+        ddlObjects.push({ table: table.name, ddl: tableDDL, info: tableInfo });
       }
     }
 
+    if (options.format === 'json') {
+      return JSON.stringify({ connection: connectionName, tables: ddlObjects }, null, 2);
+    }
+    if (options.format === 'yaml') {
+      const toYaml = (obj: any, indent: string = ''): string => {
+        if (Array.isArray(obj)) {
+          return obj.map(item => `${indent}- ${typeof item === 'object' ? '\n' + toYaml(item, indent + '  ') : String(item)}`).join('\n');
+        }
+        if (obj && typeof obj === 'object') {
+          return Object.entries(obj).map(([k, v]) => {
+            if (v && typeof v === 'object') {
+              return `${indent}${k}:\n${toYaml(v, indent + '  ')}`;
+            }
+            return `${indent}${k}: ${String(v)}`;
+          }).join('\n');
+        }
+        return `${indent}${String(obj)}`;
+      };
+      return toYaml({ connection: connectionName, tables: ddlObjects });
+    }
     return ddlStatements.join('\n\n');
   }
 

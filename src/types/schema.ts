@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Schema comparison types
 export const SchemaComparisonResult = z.object({
   identical: z.boolean(),
   differences: z.array(z.object({
@@ -23,7 +22,6 @@ export const SchemaComparisonResult = z.object({
 
 export type SchemaComparisonResult = z.infer<typeof SchemaComparisonResult>;
 
-// Migration types
 export const MigrationStep = z.object({
   id: z.string(),
   type: z.enum(['create_table', 'drop_table', 'add_column', 'drop_column', 'modify_column', 'add_index', 'drop_index', 'add_constraint', 'drop_constraint']),
@@ -48,7 +46,6 @@ export const Migration = z.object({
 
 export type Migration = z.infer<typeof Migration>;
 
-// DDL generation types
 export const DDLGenerationOptions = z.object({
   includeData: z.boolean().default(false),
   includeIndexes: z.boolean().default(true),
@@ -61,7 +58,6 @@ export const DDLGenerationOptions = z.object({
 
 export type DDLGenerationOptions = z.infer<typeof DDLGenerationOptions>;
 
-// Data export/import types
 export const ExportOptions = z.object({
   format: z.enum(['json', 'csv', 'sql', 'xml']),
   tables: z.array(z.string()).optional(),
@@ -79,12 +75,11 @@ export const ImportOptions = z.object({
   mode: z.enum(['insert', 'upsert', 'replace']).default('insert'),
   batchSize: z.number().default(1000),
   skipErrors: z.boolean().default(false),
-  mapping: z.record(z.string()).optional(), // column mapping
+  mapping: z.record(z.string()).optional(),
 });
 
 export type ImportOptions = z.infer<typeof ImportOptions>;
 
-// Query analysis types
 export const QueryAnalysisResult = z.object({
   query: z.string(),
   executionTime: z.number(),
@@ -92,7 +87,7 @@ export const QueryAnalysisResult = z.object({
   executionPlan: z.any().optional(),
   performance: z.object({
     slow: z.boolean(),
-    score: z.number(), // 0-100 performance score
+    score: z.number(),
     recommendations: z.array(z.string()),
   }),
   resources: z.object({
