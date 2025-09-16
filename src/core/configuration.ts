@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { MCPConfig } from '../types/mcp.js';
@@ -210,6 +210,7 @@ export class Configuration {
           }
         }
       } catch {
+        // Ignore errors when parsing MCP config files
       }
     }
     if (discovered.length === 0) return config;

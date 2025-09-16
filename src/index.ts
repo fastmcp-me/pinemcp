@@ -19,10 +19,9 @@ program
 program
   .command('start')
   .description('Start the MCP server')
-  .action(async (options) => {
+  .action(async (_options) => {
     try {
-      let config;
-      config = Configuration.load();
+      const config = Configuration.load();
 
       if (config.databases && config.databases.length > 0) {
         for (const db of config.databases) {
