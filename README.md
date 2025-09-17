@@ -1,3 +1,10 @@
+[![Add to Cursor](https://fastmcp.me/badges/cursor_dark.svg)](https://fastmcp.me/MCP/Details/1100/pinemcp-multi-database)
+[![Add to VS Code](https://fastmcp.me/badges/vscode_dark.svg)](https://fastmcp.me/MCP/Details/1100/pinemcp-multi-database)
+[![Add to Claude](https://fastmcp.me/badges/claude_dark.svg)](https://fastmcp.me/MCP/Details/1100/pinemcp-multi-database)
+[![Add to ChatGPT](https://fastmcp.me/badges/chatgpt_dark.svg)](https://fastmcp.me/MCP/Details/1100/pinemcp-multi-database)
+[![Add to Codex](https://fastmcp.me/badges/codex_dark.svg)](https://fastmcp.me/MCP/Details/1100/pinemcp-multi-database)
+[![Add to Gemini](https://fastmcp.me/badges/gemini_dark.svg)](https://fastmcp.me/MCP/Details/1100/pinemcp-multi-database)
+
 ![PineMCP Logo](https://raw.githubusercontent.com/Zyleree/PineMCP/main/docs/assets/PineMCP.png)
 
 [![Node.js >= 18](https://img.shields.io/badge/node-%3E%3D18.0.0-green)](https://nodejs.org)
